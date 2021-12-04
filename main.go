@@ -17,6 +17,7 @@
 package main
 
 import (
+<<<<<<< HEAD
 	"net/http"
 	"time"
 	"io/ioutil"
@@ -24,6 +25,22 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/xid"
+=======
+	"context"
+	"encoding/json"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/rs/xid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+>>>>>>> feature/integration/feature/integration
 )
 
 /*Each recipe should have a name, a list of ingredients, a list of instructions or steps,
@@ -41,12 +58,22 @@ func init() {
 
 // swagger:parameters recipes newRecipe
 type Recipe struct {
+<<<<<<< HEAD
 	ID 			 string  	`json:"id"`
 	Name 		 string 	`json:"name"`
 	Tags 		 []string 	`json:"tags"`
 	Ingredients  []string   `json:"ingredients"`
 	Instructions []string   `json:"instructions"`
 	PublishedAt  time.Time  `json:"publishedAt"`
+=======
+	// swagger: ignore
+	ID 			 primitive.ObjectID 	`json:"id" bson: "_id"`
+	Name 		 string 	`json:"name" bson: "name"`
+	Tags 		 []string 	`json:"tags" bson: "tags"`
+	Ingredients  []string   `json:"ingredients" bson: "ingredients"`
+0	Instructions []string   `json:"instructions" bson: "instructions"`
+	PublishedAt  time.Time  `json:"publishedAt" bson: "publishedAt"`
+>>>>>>> feature/integration/feature/integration
 }
 
 // swagger:operation POST /recipes recipes newRecipe
@@ -62,6 +89,7 @@ type Recipe struct {
 func NewRecipeHandler(c *gin.Context) {
 	var recipe Recipe
 	if err := c.ShouldBindJSON(&recipe); err != nil {
+<<<<<<< HEAD
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 	}
@@ -69,11 +97,45 @@ func NewRecipeHandler(c *gin.Context) {
 	recipe.PublishedAt = time.Now()
 
 	recipes = append(recipes, recipe)
+=======
+			c.JSON(http.StatusBadRequest, gin.H{"error":
+				err.Error()})
+			return
+	}
+
+	recipe.ID = primitive.NewObjectID()
+	recipe.PublishedAt = time.Now()
+	_, err = collection.InsertOne(ctx, recipe)
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError,
+			gin.{"error": "Error while inserting a new recipe"})
+		return
+	}
+>>>>>>> feature/integration/feature/integration
 
 	c.JSON(http.StatusOK, recipe)
 }
 
 func ListRecipesHandler(c *gin.Context) {
+<<<<<<< HEAD
+=======
+	cur, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError,
+				gin.H{"error": err.Error()})
+		return
+	}
+	defer cur.Close(ctx)
+
+	recipes := make([]Recipe, 0)
+	for cur.Next(ctx) {
+		var recipe Recipe
+		cur.Decode(&recipe)
+		recipes = append(recipes, recipe)
+	}
+
+>>>>>>> feature/integration/feature/integration
 	c.JSON(http.StatusOK, recipes)
 }
 
@@ -103,6 +165,7 @@ func UpdateRecipeHandler(c *gin.Context) {
 			"error": err.Error()})
 		return
 	}
+<<<<<<< HEAD
 	index := -1
 	for i := 0; i < len(recipes); i++ {
 		if recipes[i].ID == id {
@@ -116,6 +179,24 @@ func UpdateRecipeHandler(c *gin.Context) {
 	}
 	recipes[index] = recipe
 	c.JSON(http.StatusOK, recipe)
+=======
+	objectId, _ := primitive.ObjectIDFromHex(id)
+	_, err = collection.UpdateOne(ctx, bson.M{
+		"_id": objectId,
+	}, bson.D{{"$set", bson.D {
+		{"name", recipe.Name},
+		{"instructions", recipe.Instructions},
+		{"ingredients", recipe.Ingredients},
+		{"tags", recipe.Tags},
+	}}})
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError,
+			gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Recipe has been updated"})
+>>>>>>> feature/integration/feature/integration
 }
 
 // swagger:operation DELETE /recipes/{id} recipes deleteRecipe
@@ -212,10 +293,43 @@ func GetRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "Recipe not found"})
 }
 
+<<<<<<< HEAD
 func init() {
 	recipes = make([]Recipe, 0)
 	file, _ := ioutil.ReadFile("recipes.json")
 	_ = json.Unmarshal([]byte(file), &recipes)
+=======
+var ctx context.Context
+var err error
+var client *mongo.Client
+
+func init() {
+	// recipes = make([]Recipe, 0)
+	// file, _ := ioutil.ReadFile("recipes.json")
+	// _ = json.Unmarshal([]byte(file), &recipes)
+
+	ctx = context.Background()
+	client, err = mongo.Connect(ctx,
+		options.Client().ApplyURI("mongodb://adminMongo:sembarang@localhost:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&ssl=false"))
+	if err = client.Ping(context.TODO(),
+			readpref.Primary()) ; err != nil {
+				log.Fatal(err)
+			}
+			log.Println("Terkoneksi ke MongoDB")
+			
+			var listOfRecipes []interface{}
+			for _, recipe := range recipes {
+				listOfRecipes = append(listOfRecipes, recipe)
+			}
+			collection := client.Database("DEMO_DATABASE").Collection("recipes")
+			insertManyResult, err := collection.InsertMany(
+				ctx, listOfRecipes)
+				if err != nil {
+					log.Fatal(err)
+				}
+				log.Println("Inserted recipes: ",
+				len(insertManyResult.InsertedIDs))
+>>>>>>> feature/integration/feature/integration
 }
 
 func main() {
